@@ -1,0 +1,11 @@
+{
+	"editor.formatOnSave": true,
+	"singleQuote": true,
+	"trailingComma": "all",
+	"semi": false,
+	"useTabs": true,
+	"tabWidth": 4,
+	"bracketSpacing": true,
+	"arrowParens": "avoid",
+	"printWidth": 200
+}
