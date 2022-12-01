@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react'
+import axios from 'axios'
+import { useState } from 'react'
 import './App.css'
 
 const degrees = ['Bachelor', 'Master', 'Doctorate']
@@ -2842,7 +2843,8 @@ const specific_subjects = {
 }
 
 function App() {
-	const [isLoading, setIsLoading] = useState(false)
+	const [status, setStatus] = useState()
+	const [dutchUni, setDutchUni] = useState()
 	const [links, setLinks] = useState()
 	const [universityList, setUniversityList] = useState(universities)
 	const [specificSubjects, setSpecificSubjects] = useState([])
@@ -2851,16 +2853,95 @@ function App() {
 	const [specificSubject, setSpecificSubject] = useState(null)
 	const [university, setUniversity] = useState(null)
 	const [degreeLevel, setDegreeLevel] = useState(null)
-	// const [values, setValues] = useState({
-	// 	grad_date: null,
-	// 	general_subject: null,
-	// 	specific_subject: null,
-	// 	university: null,
-	// 	degree_lvl: null,
-	// })
 	const [error, setError] = useState(null)
+	const [modalOpen, setOpenModal] = useState(false)
 
-	const checkQualification = async () => {}
+	const checkQualification = async () => {
+		if (dutch_universities.includes(university)) {
+			setStatus(true)
+			setDutchUni(true)
+			setOpenModal(true)
+		} else {
+			return axios({
+				method: 'post',
+				url: 'https://squid-app-co5bx.ondigitalocean.app/technocore/api/ranking',
+				data: {
+					grad_date: gradDate,
+					general_subject: generalSubject.toLowerCase(),
+					specific_subject: specificSubject.toLowerCase(),
+					university: university.toLowerCase(),
+				},
+				headers: {
+					'Content-Type': 'application/json',
+				},
+			})
+				.then(res => {
+					if (res.data['status']) {
+						setLinks({
+							qs: res.data.qs,
+							th: res.data.th,
+							sh: res.data.sh,
+						})
+						setStatus(true)
+						setOpenModal(true)
+					} else {
+						setStatus(false)
+						setOpenModal(true)
+					}
+				})
+				.catch(() => {})
+		}
+	}
+
+	function Modal() {
+		return (
+			<div className="qualification_widget__modalBackground">
+				<div className={`qualification_widget__modalContainer ${status ? null : 'qualification_widget__modalContainerFailed'}`}>
+					<div className="title">
+						<h1>{status ? 'Your university qualifies for the Dutch Orientation year permit' : 'Your university did not qualify for Dutch Orientation year permit'}</h1>
+					</div>
+					<div className="body">
+						<p>
+							{status && !dutchUni
+								? 'Below you can find the rankings where your university is located in the top 200'
+								: dutchUni
+								? 'All Dutch universities qualify for this VISA'
+								: 'To be certain, you could manually check the rankings'}
+						</p>
+					</div>
+					<div className={status ? 'footer' : 'failedFooter'}>
+						{status && !dutchUni && (
+							<a href={links?.qs} target="_blank" rel="noreferrer">
+								<button>Top Rankings</button>
+							</a>
+						)}
+						{status && !dutchUni && (
+							<a href={links?.th} target="_blank" rel="noreferrer">
+								<button>Times Higher</button>
+							</a>
+						)}
+						{status && !dutchUni && (
+							<a href={links?.sh} target="_blank" rel="noreferrer">
+								<button>Shanghai</button>
+							</a>
+						)}
+						<a>
+							<button
+								onClick={() => {
+									setStatus(null)
+									setDutchUni(null)
+									setOpenModal(false)
+								}}
+								id="qualification_widget__cancelBtn"
+							>
+								Close
+							</button>
+						</a>
+					</div>
+				</div>
+			</div>
+		)
+	}
 
 	const handleChange = event => {
 		if (event.name === 'grad_date') {
@@ -2893,7 +2974,8 @@ function App() {
 
 	return (
 		<div className="qualification_widget__app">
-			<h1 className="qualification_widget__header">Check whether you meet one year VISA criteria!</h1>
+			{modalOpen && Modal(setOpenModal)}
+			<h1 className="qualification_widget__header">Do I qualify for the orientation year permit?</h1>
 			<div className="qualification_widget__body">
 				<div className="qualification_widget__selector">
 					<label htmlFor="grad_date">Graduation Date</label>
@@ -2919,7 +3001,7 @@ function App() {
 						disabled={error || !gradDate}
 					>
 						<option key={`degree_disabled`} value="null" disabled>
-							-- Select Degree --
+							- Select Degree -
 						</option>
 						{degrees.map((degree, idx) => (
 							<option key={`degree_${idx}`} value={degree}>
@@ -2939,7 +3021,7 @@ function App() {
 						disabled={!degreeLevel || error}
 					>
 						<option key={`university_disabled`} value="null" disabled>
-							-- Select University --
+							- Select University -
 						</option>
 						{universityList.map((university, idx) => (
 							<option key={`university_${idx}`} value={university}>
@@ -2949,7 +3031,7 @@ function App() {
 					</select>
 				</div>
 				<div className="qualification_widget__selector">
-					<label htmlFor="general_subject">General Subject</label>
+					<label htmlFor="general_subject">Faculty</label>
 					<select
 						className="qualification_widget__input"
 						name="general_subject"
@@ -2959,7 +3041,7 @@ function App() {
 						disabled={!university || error}
 					>
 						<option key={`general_disabled`} value="null" disabled>
-							-- Select General Subject --
+							- Select Faculty -
 						</option>
 						{general_subjects.map((subject, idx) => (
 							<option key={`general_${idx}`} value={subject}>
@@ -2969,7 +3051,7 @@ function App() {
 					</select>
 				</div>
 				<div className="qualification_widget__selector">
-					<label htmlFor="specific_subject">Specific Subject</label>
+					<label htmlFor="specific_subject">Program</label>
 					<select
 						className="qualification_widget__input"
 						name="specific_subject"
@@ -2979,7 +3061,7 @@ function App() {
 						disabled={!generalSubject || error}
 					>
 						<option key={`specific_disabled`} value="null" disabled>
-							-- Select Specific Subject --
+							- Select Program -
 						</option>
 						{specificSubjects &&
 							specificSubjects.map((specificSubject, idx) => (
@@ -2989,7 +3071,9 @@ function App() {
 							))}
 					</select>
 				</div>
-				<button className="qualification_widget__button">Check</button>
+				<button className="qualification_widget__button" disabled={!gradDate || !degreeLevel || !university || !generalSubject || !specificSubject} onClick={() => checkQualification()}>
+					Check
+				</button>
 			</div>
 		</div>
 	)
